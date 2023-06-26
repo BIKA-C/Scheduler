@@ -1,0 +1,15 @@
+{
+    "contact": {
+        "address": {
+            "country": "",
+            "number": 0,
+            "post": "",
+            "province": "",
+            "street": "stone crescent"
+        },
+        "email": "william.chen@northfy.com",
+        "phone": "1"
+    },
+    "password": "123",
+    "name": "william"
+}
