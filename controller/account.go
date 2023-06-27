@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"net/http"
 	"scheduler/account"
 	"scheduler/router"
 )
@@ -14,5 +13,5 @@ func UpdateAccount(c *router.C) error {
 	if e := a.Patch(); e != nil {
 		return e
 	}
-	return c.JSON(http.StatusOK, a)
+	return c.JSON(a)
 }

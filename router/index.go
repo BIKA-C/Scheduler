@@ -38,7 +38,7 @@ func New() *Router {
 	a.pool.New = func() interface{} {
 		c := &C{}
 		c.index = -1
-		c.writer = &c.writerCache
+		c.Writer = &c.writerCache
 		return c
 	}
 

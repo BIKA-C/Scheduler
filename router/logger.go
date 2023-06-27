@@ -19,7 +19,7 @@ func Logger() HandlerFunc {
 		start := time.Now()
 		e := c.Next()
 
-		l.Printf("%s %s %v %s in %v", c.Request.Method, c.Request.URL.Path, c.writer.Status(), http.StatusText(c.writer.Status()), time.Since(start))
+		l.Printf("%s %s %v %s in %v", c.Request.Method, c.Request.URL.Path, c.Writer.Status(), http.StatusText(c.Writer.Status()), time.Since(start))
 		return e
 	}
 }

@@ -21,13 +21,13 @@ func New() *router.Router {
 func errorHandler(c *router.C, e error) {
 	switch e.(type) {
 	case errors.FormError:
-		c.JSON(http.StatusBadRequest, e)
+		c.Status(http.StatusBadRequest).JSON(e)
 	case errors.Error:
 		err := e.(errors.Error)
-		c.JSON(err.Status, err)
+		c.Status(err.Status).JSON(err)
 	default:
 		log.Println(e)
-		c.String(http.StatusBadRequest, e.Error())
+		c.Status(http.StatusBadRequest).String(e.Error())
 	}
 }
 

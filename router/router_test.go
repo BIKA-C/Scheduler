@@ -16,37 +16,37 @@ func TestHTTPMethod(t *testing.T) {
 
 	a := Default()
 	a.GET("/test", func(c *C) error {
-		c.String(200, "Test")
+		c.String("Test")
 		return nil
 	})
 
 	a.POST("/test", func(c *C) error {
-		c.String(200, c.Request.FormValue("test"))
+		c.String(c.Request.FormValue("test"))
 		return nil
 	})
 
 	a.PUT("/", func(c *C) error {
-		c.String(200, c.Request.FormValue("test"))
+		c.String(c.Request.FormValue("test"))
 		return nil
 	})
 
 	a.PATCH("/", func(c *C) error {
-		c.String(200, c.Request.FormValue("test"))
+		c.String(c.Request.FormValue("test"))
 		return nil
 	})
 
 	a.DELETE("/", func(c *C) error {
-		c.String(200, "deleted")
+		c.String("deleted")
 		return nil
 	})
 
 	a.OPTIONS("/", func(c *C) error {
-		c.String(200, "options")
+		c.String("options")
 		return nil
 	})
 
 	a.HEAD("/test", func(c *C) error {
-		c.String(200, "head")
+		c.String("head")
 		return nil
 	})
 
@@ -119,12 +119,12 @@ func TestNestedGroupRoute(t *testing.T) {
 	g3 := g2.Group("/g3", testHandler)
 
 	g3.GET("/", func(c *C) error {
-		c.String(200, "g3")
+		c.String("g3")
 		return nil
 	})
 
 	g3.GET("/test", func(c *C) error {
-		c.String(200, "g3/test")
+		c.String("g3/test")
 		return nil
 	})
 
@@ -149,22 +149,22 @@ func TestGroupRoute(t *testing.T) {
 	g2 := a.Group("/g2", testHandler)
 
 	g1.GET("/", func(c *C) error {
-		c.String(200, "g1")
+		c.String("g1")
 		return nil
 	})
 
 	g1.GET("/test", func(c *C) error {
-		c.String(200, "g1/test")
+		c.String("g1/test")
 		return nil
 	})
 
 	g2.POST("/", func(c *C) error {
-		c.String(200, "g2")
+		c.String("g2")
 		return nil
 	})
 
 	g2.POST("/test", func(c *C) error {
-		c.String(200, "g2/test")
+		c.String("g2/test")
 		return nil
 	})
 
@@ -215,7 +215,7 @@ func TestRouteNotFound(t *testing.T) {
 
 	a := Default()
 	a.NotFound(func(c *C) error {
-		c.String(404, "test not found")
+		c.Status(http.StatusNotFound).String("test not found")
 		return nil
 	})
 
@@ -232,13 +232,13 @@ func TestPanic2(t *testing.T) {
 
 	a.Panic(func(c *C, rcv interface{}) error {
 		err := rcv.(errors2.Error)
-		c.JSON(err.HttpStatus(), err)
+		c.Status(err.HttpStatus()).JSON(err)
 		return nil
 	})
 
 	a.GET("/", func(c *C) error {
 		c.Panic(errors2.NewNotFound("not found"))
-		c.String(200, "123")
+		c.String("123")
 		return nil
 	})
 

@@ -25,7 +25,7 @@ type C struct {
 	writerCache responseWriter
 	params      httprouter.Params
 	Request     *http.Request
-	writer      ResponseWriter
+	Writer      ResponseWriter
 	index       int8
 	handlers    []HandlerFunc
 	data        map[string]any
@@ -42,10 +42,14 @@ func (a *Router) createContext(w http.ResponseWriter, r *http.Request) *C {
 	return c
 }
 
+func (c *C) Status(status int) *C {
+	c.Writer.WriteHeader(status)
+	return c
+}
+
 // JSON response with application/json; charset=UTF-8 Content type
-func (c *C) JSON(status int, v any) error {
-	c.writer.Header().Set(contentType, "application/json; charset=UTF-8")
-	c.writer.WriteHeader(status)
+func (c *C) JSON(v any) error {
+	c.Writer.Header().Set(contentType, "application/json; charset=UTF-8")
 	if v == nil {
 		return nil
 	}
@@ -57,16 +61,15 @@ func (c *C) JSON(status int, v any) error {
 		return err
 	}
 
-	_, e := c.writer.Write(buf.Bytes())
+	_, e := c.Writer.Write(buf.Bytes())
 	return e
 }
 
 // String response with text/html; charset=UTF-8 Content type
-func (c *C) String(status int, format string, val ...any) error {
-	c.writer.Header().Set(contentType, "text/html; charset=UTF-8")
-	c.writer.WriteHeader(status)
+func (c *C) String(format string, val ...any) error {
+	c.Writer.Header().Set(contentType, "text/html; charset=UTF-8")
 	if len(val) == 0 {
-		c.writer.Write(util.S2B(format))
+		c.Writer.Write(util.S2B(format))
 		return nil
 	}
 
@@ -75,15 +78,14 @@ func (c *C) String(status int, format string, val ...any) error {
 
 	buf.WriteString(fmt.Sprintf(format, val...))
 
-	_, e := c.writer.Write(buf.Bytes())
+	_, e := c.Writer.Write(buf.Bytes())
 	return e
 }
 
 // Write response with application/octet-stream
-func (c *C) Write(status int, v []byte) error {
-	c.writer.Header().Set(contentType, "application/octet-stream")
-	c.writer.WriteHeader(status)
-	_, e := c.writer.Write(v)
+func (c *C) Write(v []byte) error {
+	c.Writer.Header().Set(contentType, "application/octet-stream")
+	_, e := c.Writer.Write(v)
 	return e
 }
 
@@ -121,7 +123,7 @@ func (c *C) Lang() string {
 
 // Redirect 302 response
 func (c *C) Redirect(url string) {
-	http.Redirect(c.writer, c.Request, url, 302)
+	http.Redirect(c.Writer, c.Request, url, 302)
 }
 
 // Abort stop middleware
@@ -131,8 +133,13 @@ func (c *C) Abort() {
 
 // AbortWithStatus stop middleware and return http status code
 func (c *C) AbortWithStatus(status int) {
-	c.writer.WriteHeader(status)
+	c.Writer.WriteHeader(status)
 	c.Abort()
+}
+
+func (c *C) AbortWithError(e error) error {
+	c.Abort()
+	return e
 }
 
 // Next next middleware

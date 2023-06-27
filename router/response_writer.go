@@ -2,6 +2,7 @@ package router
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
 )
@@ -11,6 +12,7 @@ import (
 // if the functionality calls for it.
 type ResponseWriter interface {
 	http.ResponseWriter
+	http.Hijacker
 	http.Flusher
 	// Status returns the status code of the response or 0 if the response has not been written.
 	Status() int
@@ -74,7 +76,11 @@ func (rw *responseWriter) Before(before func(ResponseWriter)) {
 }
 
 func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return http.NewResponseController(rw.ResponseWriter).Hijack()
+	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("ResponseWriter does not implement http.Hijacker")
+	}
+	return hijacker.Hijack()
 }
 
 func (rw *responseWriter) CloseNotify() <-chan bool {

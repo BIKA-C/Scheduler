@@ -3,30 +3,31 @@ package router
 import (
 	"log"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-var defaultPanic func(c *C, rcv any) error = nil
+// var defaultPanic func(c *C, rcv any) error = nil
 
-// var defaultPanic = func(c *C, rcv interface{}) error {
-// 	stack := stack()
-// 	log.Printf("PANIC: %s\n%s", rcv, stack)
-// 	c.String(500, "internal server error")
-// 	return nil
-// }
+var defaultPanic = func(c *C, rcv interface{}) error {
+	stack := debug.Stack()
+	log.Printf("PANIC: %s\n%s", rcv, stack)
+	c.Status(http.StatusInternalServerError).String("internal server error")
+	return nil
+}
 
 var defaultNotfound = func(c *C) error {
-	http.NotFoundHandler().ServeHTTP(c.writer, c.Request)
+	http.NotFoundHandler().ServeHTTP(c.Writer, c.Request)
 	return nil
 }
 
 var defaultError = func(c *C, e error) {
 	log.Println(e)
-	if c.writer.Written() {
+	if c.Writer.Written() {
 		return
 	}
-	c.String(http.StatusBadRequest, e.Error())
+	c.Status(http.StatusBadRequest).String(e.Error())
 }
 
 type router struct {
@@ -121,7 +122,7 @@ func (r *router) Static(path string, root http.Dir, handlers ...HandlerFunc) {
 	fileServer := http.StripPrefix(path, http.FileServer(root))
 
 	handlers = append(handlers, func(c *C) error {
-		fileServer.ServeHTTP(c.writer, c.Request)
+		fileServer.ServeHTTP(c.Writer, c.Request)
 		return nil
 	})
 

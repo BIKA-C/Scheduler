@@ -21,7 +21,7 @@ func TestJSONResp(t *testing.T) {
 
 	a := New()
 	a.GET("/", func(c *C) error {
-		c.JSON(200, data)
+		c.JSON(data)
 		return nil
 	})
 
@@ -40,7 +40,7 @@ func TestStringResp(t *testing.T) {
 	assert := assert.New(t)
 	a := New()
 	a.GET("/", func(c *C) error {
-		c.String(200, "123")
+		c.String("123")
 		return nil
 	})
 
@@ -56,7 +56,7 @@ func TestDownloadResp(t *testing.T) {
 	assert := assert.New(t)
 	a := New()
 	a.GET("/", func(c *C) error {
-		c.Write(200, []byte("123"))
+		c.Write([]byte("123"))
 		return nil
 	})
 
@@ -79,7 +79,7 @@ func TestCData(t *testing.T) {
 
 	a.GET("/", func(c *C) error {
 		c.GetAll()
-		c.String(200, c.Get("test").(string))
+		c.String(c.Get("test").(string))
 		return nil
 	})
 

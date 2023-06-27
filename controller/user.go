@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"net/http"
 	"scheduler/account"
 	"scheduler/router"
 )
@@ -14,7 +13,7 @@ func RegisterUser(c *router.C) error {
 	if e := u.Store(); e != nil {
 		return e
 	}
-	return c.JSON(http.StatusOK, u)
+	return c.JSON(u)
 }
 
 // type userPatch struct {
