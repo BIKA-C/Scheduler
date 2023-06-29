@@ -1,8 +1,6 @@
 package account
 
-import (
-	"scheduler/errors"
-)
+import "scheduler/router/errors"
 
 type Contact struct {
 	Address Address `json:"address"`
@@ -11,7 +9,7 @@ type Contact struct {
 }
 
 func (c *Contact) Validate() error {
-	err := c.Address.Validate().(errors.FormError)
+	err := c.Address.Validate().(errors.AccumulateError)
 
 	if c.Phone != "" && !phone.MatchString(c.Phone) {
 		err.Set("phone", "Not a phone number")
@@ -21,9 +19,5 @@ func (c *Contact) Validate() error {
 		err.Set("email", "Not a email")
 	}
 
-	if !err.NotOK() {
-		return err
-	}
-
-	return nil
+	return err.Build()
 }

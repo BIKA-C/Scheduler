@@ -1,32 +1,34 @@
 package account
 
 import (
-	"scheduler/errors"
+	"scheduler/router/errors"
 	"scheduler/util"
 )
 
+type asset struct {
+	Sum     uint            `json:"sum"`
+	Balance map[string]uint `json:"balance"`
+}
+
 type User struct {
 	Account
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Asset asset  `json:"asset"`
 }
 
 func (u *User) Validate() error {
-	err := errors.DefaultFormError
+	err := u.Account.Validate().(errors.AccumulateError)
 	if u.Name != "" {
 	}
 
-	if err.NotOK() {
-		return err
-	} else {
-		return nil
-	}
+	return err.Build()
 }
 
-func (u *User) Store() error {
+func (u *User) Commit() error {
 	u.UUID = util.RandomString(10)
 	return nil
 }
 
-func (u *User) Patch() error {
-	return nil
-}
+// func (u *User) Patch() error {
+// 	return nil
+// }

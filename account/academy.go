@@ -1,7 +1,7 @@
 package account
 
 type Academy struct {
-	Account `json:"-"`
-	Contact
-	Name string `json:"name"`
+	Account
+	Contact Contact `json:"contact"`
+	Name    string  `json:"name"`
 }

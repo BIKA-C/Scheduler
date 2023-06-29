@@ -1,8 +1,6 @@
 package account
 
-import (
-	"scheduler/errors"
-)
+import "scheduler/router/errors"
 
 type Address struct {
 	Number   uint8  `json:"number"`
@@ -14,14 +12,9 @@ type Address struct {
 }
 
 func (a *Address) Validate() error {
-	err := errors.DefaultFormError
+	err := errors.DefaultAccError
 
 	// todo
 
-	if !err.NotOK() {
-		return err
-	}
-
-	return nil
-
+	return err.Build()
 }

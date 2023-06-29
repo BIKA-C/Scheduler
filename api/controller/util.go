@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"scheduler/errors"
+	"scheduler/router/errors"
 )
 
 func cast(e error) error {
 	switch e.(type) {
-	case errors.FormError:
+	case errors.AccumulateError:
 	case errors.Error:
 		return e
 	}
