@@ -1,7 +1,7 @@
 package json
 
 import (
-	"encoding/json"
+	"scheduler/internal/pkg/json"
 )
 
 var (
