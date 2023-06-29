@@ -65,7 +65,6 @@ func TestDownloadResp(t *testing.T) {
 	a.ServeHTTP(w, r)
 	assert.Equal(200, w.Code)
 	assert.Equal("123", w.Body.String())
-	assert.Equal("application/octet-stream", w.Header().Get("Content-Type"))
 }
 
 func TestCData(t *testing.T) {

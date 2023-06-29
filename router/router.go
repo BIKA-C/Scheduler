@@ -37,10 +37,11 @@ type router struct {
 }
 
 // Use register middleware
-func (r *router) Use(middlewares ...HandlerFunc) {
+func (r *router) Use(middlewares ...HandlerFunc) *router {
 	for _, handler := range middlewares {
 		r.handlers = append(r.handlers, handler)
 	}
+	return r
 }
 
 // GET handle GET method

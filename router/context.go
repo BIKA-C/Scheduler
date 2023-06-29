@@ -29,7 +29,7 @@ type C struct {
 	index       int8
 	handlers    []HandlerFunc
 	data        map[string]any
-	// sessions    *sessions.Sessions
+	validateReq bool
 }
 
 func (a *Router) createContext(w http.ResponseWriter, r *http.Request) *C {
@@ -38,6 +38,7 @@ func (a *Router) createContext(w http.ResponseWriter, r *http.Request) *C {
 	c.Request = r
 	c.index = -1
 	c.data = nil
+	c.validateReq = false
 
 	return c
 }
@@ -82,17 +83,11 @@ func (c *C) String(format string, val ...any) error {
 	return e
 }
 
-// Write response with application/octet-stream
+// Write response
 func (c *C) Write(v []byte) error {
-	c.Writer.Header().Set(contentType, "application/octet-stream")
 	_, e := c.Writer.Write(v)
 	return e
 }
-
-// // HTML render template engine
-// func (c *C) HTML(name string, data any) {
-// 	c.render.Render(c.Writer, name, data)
-// }
 
 // Param get param from route
 func (c *C) Param(name string) string {
@@ -104,15 +99,17 @@ func (c *C) ParseJSON(v any) error {
 	defer c.Request.Body.Close()
 	d := json.NewDecoder(c.Request.Body)
 	d.DisallowUnknownFields()
-	if e := d.Decode(v); e != nil {
-		return e
-	}
-
-	if validator, ok := v.(Validator); ok {
-		return validator.Validate()
-	} else {
+	if err := d.Decode(v); err != nil {
 		return nil
 	}
+
+	if c.validateReq {
+		v, ok := v.(Validator)
+		if ok {
+			return v.Validate()
+		}
+	}
+	return nil
 }
 
 // Lang get first language from HTTP Header
@@ -157,6 +154,18 @@ func (c *C) Next() error {
 	return nil
 }
 
+func (c *C) SetValidation(b bool) {
+	c.validateReq = b
+}
+
+func (c *C) GetValidation() bool {
+	return c.validateReq
+}
+
+func (c *C) Method() string {
+	return c.Request.Method
+}
+
 // ClientIP get ip from RemoteAddr
 func (c *C) ClientIP() string {
 	return c.Request.RemoteAddr
@@ -168,6 +177,10 @@ func (c *C) Set(key string, v any) {
 		c.data = make(map[string]any)
 	}
 	c.data[key] = v
+}
+
+func (c *C) Delete(key string) {
+	delete(c.data, key)
 }
 
 // SetAll data
@@ -185,9 +198,9 @@ func (c *C) GetAll() map[string]any {
 	return c.data
 }
 
-// func (c *C) Sessions(name string) *sessions.Session {
-// 	return c.sessions.Get(name)
-// }
+func (c *C) Query(key string) string {
+	return c.Request.URL.Query().Get(key)
+}
 
 func (c *C) MustQueryInt(key string, d int) int {
 	val := c.Request.URL.Query().Get(key)
@@ -247,6 +260,10 @@ func (c *C) MustQueryTime(key string, layout string, d time.Time) time.Time {
 }
 
 /////////////////////////
+
+func (c *C) FormValue(key string) string {
+	return c.Request.PostFormValue(key)
+}
 
 func (c *C) MustFormInt(key string, d int) int {
 	val := c.Request.PostFormValue(key)
