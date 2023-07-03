@@ -1,0 +1,111 @@
+// func BenchmarkDate_Sub(b *testing.B) {
+// 	for i := 0; i < b.N; i++ {
+// 		x := NewDate(2021, 7, 29)
+// 		y := NewDate(2024, 8, 17)
+// 		// i := x.Sub(y)
+// 		i.Day = 1
+// 	}
+// }
+
+// var subTestData = []struct {
+// 	name   string
+// 	fields Date
+// 	args   Date
+// 	want   Interval
+// }{
+// 	{
+// 		name:   "Test 1",
+// 		fields: NewDate(2023, 4, 1),
+// 		args:   NewDate(2023, 3, 20),
+// 		want:   Interval{0, 0, 12},
+// 	}, {
+// 		name:   "Test 2",
+// 		fields: NewDate(2023, 5, 1),
+// 		args:   NewDate(2023, 3, 20),
+// 		want:   Interval{0, 1, 11},
+// 	}, {
+// 		name:   "Test 3",
+// 		fields: NewDate(2024, 6, 1),
+// 		args:   NewDate(2023, 9, 20),
+// 		want:   Interval{0, 8, 12},
+// 	}, {
+// 		name:   "Test 4",
+// 		fields: NewDate(2024, 6, 1),
+// 		args:   NewDate(2023, 5, 20),
+// 		want:   Interval{1, 0, 12},
+// 	}, {
+// 		name:   "Test 5",
+// 		fields: NewDate(2023, 5, 20),
+// 		args:   NewDate(2024, 6, 1),
+// 		want:   Interval{-1, 0, -12},
+// 	}, {
+// 		name:   "Test 6",
+// 		fields: NewDate(2024, 6, 1),
+// 		args:   NewDate(2022, 1, 20),
+// 		want:   Interval{2, 4, 12},
+// 	}, {
+// 		name:   "Test 7",
+// 		fields: NewDate(1973, 6, 24),
+// 		args:   NewDate(2011, 11, 13),
+// 		want:   Interval{-38, -4, -19},
+// 	}, {
+// 		name:   "Test 8",
+// 		fields: NewDate(1937, 1, 1),
+// 		args:   NewDate(1911, 5, 26),
+// 		want:   Interval{25, 7, 6},
+// 	}, {
+// 		name:   "Test 9",
+// 		fields: NewDate(2119,3,2),
+// 		args:   NewDate(1924,7,10),
+// 		want:   Interval{194,7,20},
+// 	},
+// }
+
+// var random = false
+
+// func TestDate_Sub(t *testing.T) {
+// 	for _, tt := range subTestData {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			a := Date{
+// 				day:   tt.fields.day,
+// 				year:  tt.fields.year,
+// 				month: tt.fields.month,
+// 			}
+// 			check := tt.args.Add(tt.want)
+// 			if check != tt.fields {
+// 				t.Fatalf("%s: Wrong answer for %v and %v, got %v", tt.name, tt.fields, tt.args, check)
+// 			}
+// 			if got := a.Sub(tt.args); !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+// 			}
+// 		})
+// 	}
+// 	if !random {
+// 		return
+// 	}
+// 	for i := 0; i < 100; i++ {
+// 		a := NewDate(rand.Intn(300)+1900, time.Month(rand.Intn(12)+1), rand.Intn(28)+1)
+// 		b := NewDate(rand.Intn(300)+1900, time.Month(rand.Intn(12)+1), rand.Intn(28)+1)
+// 		inv := a.Sub(b)
+// 		if b.Add(inv) != a {
+// 			t.Errorf("%d: %s sub %s got [%d, %d, %d]", i+1, a, b, inv.Year, inv.Month, inv.Day)
+// 		}
+
+// 	}
+// }
+
+// func FuzzDate_Sub(f *testing.F) {
+// 	for _, t := range subTestData {
+// 		f.Add(t.args.year, int(t.args.month), t.args.day)
+// 	}
+
+// 	f.Fuzz(func(t *testing.T, year, month, day int) {
+// 		a := NewDate(rand.Intn(300)+1900, time.Month(rand.Intn(12)+1), rand.Intn(28)+1)
+// 		b := NewDate(year, time.Month(month), day)
+// 		i := a.Sub(b)
+// 		if b.Add(i) != a {
+// 			t.Errorf("%s sub %s got [%d, %d, %d]", a, b, i.Year, i.Month, i.Day)
+// 		}
+// 	})
+
+// }
