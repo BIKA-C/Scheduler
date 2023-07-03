@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Time represents a time of the day in seconds
 type Time uint32
 
 func NewTime(h, m, s int) Time {
@@ -65,6 +66,10 @@ func (t Time) Before(o Time) bool {
 	return t < o
 }
 
+func (t Time) Same(o Time) bool {
+	return t == o
+}
+
 func (t Time) After(o Time) bool {
 	return t > o
 }
@@ -79,6 +84,7 @@ func (t Time) Add(d time.Duration) Time {
 	return t
 }
 
+// Date represents a day in year, month and day
 type Date struct {
 	day, year int
 	month     time.Month

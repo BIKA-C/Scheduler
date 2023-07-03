@@ -7,6 +7,7 @@ import (
 )
 
 type Course struct {
+	Meta
 	Title       string
 	Description string
 	Sections    []Section
@@ -14,6 +15,7 @@ type Course struct {
 
 // currently doesn't support overnight sections
 type Section struct {
+	Meta
 	Title       string
 	Description string
 	Instructor  *account.Instructor
@@ -70,7 +72,7 @@ func (c *Section) cleanup(from Date, n int) (bool, []Class, error) {
 	return true, nil, nil
 }
 
-func (c Section) Next(from Date, n int) ([]Class, Date, error) {
+func (c *Section) Next(from Date, n int) ([]Class, Date, error) {
 
 	if ok, list, err := c.cleanup(from, n); !ok {
 		return list, from, err
@@ -139,7 +141,7 @@ func (c *Section) First() Class {
 	}
 }
 
-func (c Section) All() []Class {
+func (c *Section) All() []Class {
 
 	if !c.repeat.on || c.repeat.end.Same(c.start) {
 		return []Class{c.First()}

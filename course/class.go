@@ -8,7 +8,8 @@ import (
 
 // Class is an instance of a section
 type Class struct {
-	ID         util.ID            `json:"id"`
+	Meta
+	SectionID  util.ID            `json:"section"`
 	Order      int                `json:"order"`
 	Title      string             `json:"title"`
 	Time       time.Time          `json:"time"`
