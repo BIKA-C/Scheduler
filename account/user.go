@@ -33,3 +33,7 @@ func (u *User) Validate() error {
 func (u *User) Commit(s internal.Saver[User]) error {
 	return s.Save(u)
 }
+
+func (a asset) IsEmptyAsset() bool {
+	return a.Sum == 0 && len(a.Balance) == 0
+}

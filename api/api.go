@@ -33,17 +33,17 @@ func errorHandler(c *router.C, e error) {
 		c.Status(err.Status).JSON(err)
 	default:
 		log.Println(e)
-		c.Status(http.StatusInternalServerError).String(e.Error())
+		c.Status(http.StatusInternalServerError).JSON(errors.ErrInternalServerError)
 	}
 }
 
 func (a *api) registerUserAPI() {
 	user := a.router.Group("/user").Use()
 
-	user.POST("/", a.controller.RegisterUser)
-	user.PATCH("/:uuid/account", a.controller.UpdateAccount)
-	user.PATCH("/:uuid/", a.controller.UpdateUser)
-	user.GET("/:uuid/", a.controller.FetchUser)
+	user.POST("/", a.controller.RegisterUser)                //ok
+	user.PATCH("/:uuid/account", a.controller.UpdateAccount) //ok
+	user.PATCH("/:uuid/", a.controller.UpdateUser)           //ok
+	user.GET("/:uuid/", a.controller.FetchUser)              //ok
 
 	viewer := a.router.Group("/user").Use(
 	// todo credential check
