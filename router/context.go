@@ -29,7 +29,6 @@ type C struct {
 	index       int8
 	handlers    []HandlerFunc
 	data        map[string]any
-	validateReq bool
 }
 
 func (a *Router) createContext(w http.ResponseWriter, r *http.Request) *C {
@@ -38,7 +37,6 @@ func (a *Router) createContext(w http.ResponseWriter, r *http.Request) *C {
 	c.Request = r
 	c.index = -1
 	c.data = nil
-	c.validateReq = false
 
 	return c
 }
@@ -50,10 +48,11 @@ func (c *C) Status(status int) *C {
 
 // JSON response with application/json; charset=UTF-8 Content type
 func (c *C) JSON(v any) error {
-	c.Writer.Header().Set(contentType, "application/json; charset=UTF-8")
 	if v == nil {
 		return nil
 	}
+
+	c.Writer.Header().Set(contentType, "application/json; charset=UTF-8")
 
 	buf := bufPool.Get()
 	defer bufPool.Put(buf)
@@ -99,17 +98,7 @@ func (c *C) ParseJSON(v any) error {
 	defer c.Request.Body.Close()
 	d := json.NewDecoder(c.Request.Body)
 	d.DisallowUnknownFields()
-	if err := d.Decode(v); err != nil {
-		return nil
-	}
-
-	if c.validateReq {
-		v, ok := v.(Validator)
-		if ok {
-			return v.Validate()
-		}
-	}
-	return nil
+	return d.Decode(v)
 }
 
 // Lang get first language from HTTP Header
@@ -152,14 +141,6 @@ func (c *C) Next() error {
 		}
 	}
 	return nil
-}
-
-func (c *C) SetValidation(b bool) {
-	c.validateReq = b
-}
-
-func (c *C) GetValidation() bool {
-	return c.validateReq
 }
 
 func (c *C) Method() string {

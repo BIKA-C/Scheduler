@@ -9,7 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var bufPool = util.NewBufferPool(100)
+var bufPool = util.NewBufferPool()
 
 type Router struct {
 	*router
@@ -64,10 +64,10 @@ func Default() *Router {
 	return a
 }
 
-// SetPoolSize of buffer
-func (a *Router) SetPoolSize(poolSize int) {
-	bufPool = util.NewBufferPool(poolSize)
-}
+// // SetPoolSize of buffer
+// func (a *Router) SetPoolSize(poolSize int) {
+// 	bufPool = util.NewBufferPool(poolSize)
+// }
 
 func (a *Router) SetTrailingSlash(b bool) {
 	a.httprouter.RedirectTrailingSlash = b
