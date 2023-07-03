@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"sync"
 	"unsafe"
 )
 
@@ -13,32 +14,23 @@ func B2S(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
-type BufferPool struct {
-	list chan *bytes.Buffer
-}
+type BufferPool sync.Pool
 
-func NewBufferPool(poolSize int) *BufferPool {
-	b := &BufferPool{
-		list: make(chan *bytes.Buffer, poolSize),
+func NewBufferPool() *BufferPool {
+	b := &sync.Pool{
+		New: func() any {
+			return &bytes.Buffer{}
+		},
 	}
-
-	return b
+	return (*BufferPool)(b)
 }
 
 func (p *BufferPool) Put(b *bytes.Buffer) {
-	b.Reset()
-	select {
-	case p.list <- b:
-	default:
-	}
+	(*sync.Pool)(p).Put(b)
 }
 
 func (p *BufferPool) Get() *bytes.Buffer {
-	select {
-	case b := <-p.list:
-		return b
-	default:
-		return &bytes.Buffer{}
-	}
-
+	b := (*sync.Pool)(p).Get().(*bytes.Buffer)
+	b.Reset()
+	return b
 }

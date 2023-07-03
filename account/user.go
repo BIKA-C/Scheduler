@@ -1,8 +1,8 @@
 package account
 
 import (
+	"scheduler/internal"
 	"scheduler/router/errors"
-	"scheduler/util"
 )
 
 type asset struct {
@@ -11,24 +11,25 @@ type asset struct {
 }
 
 type User struct {
-	Account
-	Name  string `json:"name"`
-	Asset asset  `json:"asset"`
+	Account `json:"account"`
+	Name    string `json:"name"`
+	Asset   asset  `json:"asset"`
 }
 
 func (u *User) Validate() error {
-	err := u.Account.Validate().(errors.AccumulateError)
-	if u.Name != "" {
+	var e error
+	if e = u.Account.Validate(); e == nil {
+		e = errors.DefaultAccError
+	}
+	err := e.(errors.AccumulateError)
+
+	if u.Name == "" {
+		err.Set("name", "Name empty")
 	}
 
 	return err.Build()
 }
 
-func (u *User) Commit() error {
-	u.UUID = util.RandomString(10)
-	return nil
+func (u *User) Commit(s internal.Saver[User]) error {
+	return s.Save(u)
 }
-
-// func (u *User) Patch() error {
-// 	return nil
-// }

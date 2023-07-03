@@ -6,7 +6,6 @@ import (
 	"scheduler/api/controller"
 	"scheduler/router"
 	"scheduler/router/errors"
-	"scheduler/router/middleware"
 )
 
 type api struct {
@@ -34,28 +33,24 @@ func errorHandler(c *router.C, e error) {
 		c.Status(err.Status).JSON(err)
 	default:
 		log.Println(e)
-		c.Status(http.StatusBadRequest).String(e.Error())
+		c.Status(http.StatusInternalServerError).String(e.Error())
 	}
 }
 
 func (a *api) registerUserAPI() {
-	user := a.router.Group("/user").Use(
-		middleware.Validate(func(c *router.C) bool {
-			return c.Method() != http.MethodPost
-		}),
-	)
+	user := a.router.Group("/user").Use()
 
-	user.POST("/", controller.RegisterUser)
+	user.POST("/", a.controller.RegisterUser)
 	user.PATCH("/:uuid/account", a.controller.UpdateAccount)
-	user.PATCH("/:uuid/", controller.UpdateUser)
-	user.GET("/:uuid/", controller.FetchUser)
+	user.PATCH("/:uuid/", a.controller.UpdateUser)
+	user.GET("/:uuid/", a.controller.FetchUser)
 
 	viewer := a.router.Group("/user").Use(
 	// todo credential check
 	)
 
-	viewer.GET("/profile" /* todo fetchProfile */)
-	viewer.PATCH("/profile" /* todo fetchProfile */)
+	viewer.GET("/:uuid/profile" /* todo fetchProfile */)
+	viewer.PATCH("/:uuid/profile" /* todo fetchProfile */)
 }
 
 func (a *api) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,7 @@ package account
 import "scheduler/router/errors"
 
 type Contact struct {
-	Address Address `json:"address"`
+	Address Address `json:"address,omitempty"`
 	Phone   string  `json:"phone,omitempty"`
 	Email   string  `json:"email"`
 }

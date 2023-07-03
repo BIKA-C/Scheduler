@@ -3,6 +3,7 @@ package controller
 import (
 	"scheduler/account"
 	"scheduler/repository"
+	"scheduler/util"
 )
 
 type Controller struct {
@@ -12,13 +13,14 @@ type Controller struct {
 func New() *Controller {
 	return &Controller{
 		repo: repositories{
-			account: &repository.AccountRepository{},
+			account: repository.NewAccountRepo(),
+			user:    repository.NewUserRepo(),
 		},
 	}
 }
 
 type repositories struct {
-	// user    repository.Repository[account.User]
-	account repository.Repository[account.Account]
+	user    repository.Repository[account.User, util.UUID]
+	account repository.Repository[account.Account, util.UUID]
 	// academy repository.Repository[account.Academy]
 }

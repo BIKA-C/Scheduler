@@ -3,12 +3,16 @@ package account
 import (
 	"scheduler/internal"
 	"scheduler/router/errors"
+	"scheduler/util"
 )
 
+// type ID string
+type Password string
+
 type Account struct {
-	Password string `json:"-"`
-	Email    string `json:"email"`
-	UUID     string `json:"id"`
+	Password Password  `json:"password,omitempty"`
+	Email    string    `json:"email"`
+	UUID     util.UUID `json:"id"`
 }
 
 func (a Account) Validate() error {
@@ -24,7 +28,7 @@ func (a Account) Validate() error {
 	return err.Build()
 }
 
-func (a Account) Commit(s internal.Saver[Account]) error {
+func (a *Account) Commit(s internal.Saver[Account]) error {
 	return s.Save(a)
 }
 
@@ -39,4 +43,8 @@ func (a AccountUpdate) Validate() error {
 	}
 	// todo verify password
 	return nil
+}
+
+func (p Password) MarshalJSON() ([]byte, error) {
+	return nil, nil
 }
