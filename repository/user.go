@@ -1,50 +1,70 @@
 package repository
 
 import (
+	"database/sql"
 	"scheduler/account"
-	"scheduler/router/errors"
+	"scheduler/repository/database"
 	"scheduler/util"
 )
 
 type UserRepository struct {
-	db  map[util.UUID]account.User
-	acc AccountRepository
+	db  *sql.DB
+	acc *sqliteAccRepo
 }
 
-func NewUserRepo(a AccountRepository) *UserRepository {
+var _ Repository[account.User, util.UUID] = &UserRepository{}
+
+func UserRepo(a AccountRepository) *UserRepository {
 	return &UserRepository{
-		db:  make(map[util.UUID]account.User, 10),
-		acc: a,
+		db:  nil,
+		acc: a.(*sqliteAccRepo),
 	}
 }
 
-func (a *UserRepository) Get(UUID util.UUID) account.User {
-	if _, ok := a.db[UUID]; !ok {
-		return account.User{}
+func (a *UserRepository) Get(id util.UUID) (u account.User, err error) {
+	u.Account, err = a.acc.Get(id)
+	if err != nil {
+		return u, ErrUserDoesNotExist
 	}
-	return a.db[UUID]
+	err = a.db.QueryRow(`SELECT Name FROM User WHERE AccountID=?`, u.Meta.ID).Scan(
+		&u.Name,
+	)
+	if err != nil {
+		return u, ErrUserDoesNotExist
+	}
+	return
 }
 
 func (a *UserRepository) Save(u *account.User) error {
-	u.UUID = util.NewUUID()
-	a.acc.Save(&u.Account)
-	a.db[u.UUID] = *u
-	return nil
+	return a.acc.save(&u.Account, func(tx *database.Conn, id int) error {
+		if id < 0 {
+			return ErrUserAlreadyExist
+		}
+		stmt := tx.Prepare(`INSERT INTO User (Name, AccountID) VALUES (?, ?)`)
+		defer stmt.Reset()
+
+		stmt.BindText(1, u.Name)
+		stmt.BindInt64(2, int64(id))
+
+		if r, err := stmt.Step(); err != nil {
+			return ErrUserCanNotBeCreated.Wrap(err)
+		} else if !r || stmt.ColumnInt(0) != 1 {
+			return ErrAccountDoesNotExist
+		} else {
+			return nil
+		}
+	})
 }
 
-func (a *UserRepository) Update(u account.User) error {
-	if _, ok := a.db[u.UUID]; !ok {
-		return errors.BadRequest("user does not exist")
+func (a *UserRepository) Update(u *account.User) error {
+	acc := a.acc.GetID(u.UUID)
+	if acc < 0 {
+		return ErrUserDoesNotExist
 	}
-	a.db[u.UUID] = u
-	return nil
+	_, err := a.db.Exec(`UPDATE User SET Name=?`, u.Name)
+	return err
 }
 
 func (a *UserRepository) Delete(id util.UUID) error {
-	if _, ok := a.db[id]; !ok {
-		return errors.BadRequest("user does not exist")
-	}
-	a.acc.Delete(id)
-	delete(a.db, id)
-	return nil
+	return a.acc.Delete(id)
 }

@@ -2,65 +2,188 @@ package repository
 
 import (
 	"scheduler/account"
-	"scheduler/router/errors"
+	"scheduler/repository/database"
 	"scheduler/util"
+	"time"
+
+	"github.com/bika-c/sqlite"
 )
 
+// AccountRepository's Save method always updates the database
 type AccountRepository interface {
 	Repository[account.Account, util.UUID]
-	GetByEmail(email string) account.Account
+	GetID(util.UUID) int
+
+	GetByEmail(email string) (account.Account, error)
 	VerifyPassword(UUID util.UUID, password account.Password) bool
 }
 
-type memoryAccRepo struct {
-	db map[util.UUID]account.Account
+var _ AccountRepository = &sqliteAccRepo{}
+
+type sqliteAccRepo struct {
+	db *database.SQLite
 }
 
-func NewAccountRepo() *memoryAccRepo {
-	return &memoryAccRepo{
-		db: make(map[util.UUID]account.Account, 10),
+func AccountRepo(db *database.SQLite) *sqliteAccRepo {
+	return &sqliteAccRepo{
+		db: db,
 	}
 }
 
-func (a *memoryAccRepo) Get(UUID util.UUID) account.Account {
-	if _, ok := a.db[UUID]; !ok {
-		return account.Account{}
-	}
-	return a.db[UUID]
-}
+func (a *sqliteAccRepo) Get(id util.UUID) (account.Account, error) {
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	stmt := conn.Prepare(`SELECT Email, ID, CreatedAt, UpdatedAt, LastLogin FROM Account WHERE UUID=?`)
+	defer stmt.Reset()
 
-func (a *memoryAccRepo) Save(u *account.Account) error {
-	u.HashPassword()
-	a.db[u.UUID] = *u
-	u.Password = ""
-	return nil
-}
+	var acc account.Account
 
-func (a *memoryAccRepo) Update(u account.Account) error {
-	if _, ok := a.db[u.UUID]; !ok {
-		return errors.BadRequest("user does not exist")
-	}
-	a.db[u.UUID] = u
-	return nil
-}
+	acc.UUID = id
 
-func (a *memoryAccRepo) Delete(id util.UUID) error {
-	if _, ok := a.db[id]; !ok {
-		return errors.BadRequest("user does not exist")
-	}
-	delete(a.db, id)
-	return nil
-}
-
-func (a *memoryAccRepo) GetByEmail(email string) account.Account {
-	for _, v := range a.db {
-		if v.Email == email {
-			return v
+	stmt.BindText(1, id.Str())
+	if r, err := stmt.Step(); err != nil {
+		return account.EmptyAccount, err
+	} else if !r {
+		return account.EmptyAccount, ErrAccountDoesNotExist
+	} else {
+		acc.Email = stmt.ColumnText(0)
+		acc.Meta.ID = stmt.ColumnInt(1)
+		acc.Meta.CreatedAt, _ = time.Parse(time.DateTime, stmt.ColumnText(2))
+		acc.Meta.UpdatedAt, _ = time.Parse(time.DateTime, stmt.ColumnText(3))
+		if stmt.ColumnType(4) == sqlite.SQLITE_TEXT {
+			acc.Meta.LastLogin, _ = time.Parse(time.DateTime, stmt.ColumnText(4))
 		}
 	}
-	return account.EmptyAccount
+	return acc, nil
 }
 
-func (a *memoryAccRepo) VerifyPassword(id util.UUID, password account.Password) bool {
-	return password.Compare(a.db[id].Password.Hash())
+func (a *sqliteAccRepo) GetID(uuid util.UUID) (i int) {
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	stmt := conn.Prepare(`SELECT ID FROM Account WHERE UUID=?`)
+	defer stmt.Reset()
+
+	stmt.BindText(1, uuid.Str())
+	if r, err := stmt.Step(); err != nil {
+		return -1
+	} else if !r {
+		return -1
+	} else {
+		return stmt.ColumnInt(0)
+	}
+}
+
+func (a *sqliteAccRepo) exist(u *account.Account) bool {
+	if u.Email == "" && u.UUID.IsUUID() {
+		return true
+	}
+	if !u.UUID.IsUUID() {
+		return false
+	}
+
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	stmt := conn.Prepare(`SELECT count(UUID) FROM Account WHERE (UUID=? AND Email=?) OR ID=?`)
+	defer stmt.Reset()
+	stmt.BindText(1, u.UUID.Str())
+	stmt.BindText(2, u.Email)
+	stmt.BindInt64(3, int64(u.Meta.ID))
+	if r, err := stmt.Step(); err != nil {
+		return false
+	} else if !r {
+		return false
+	} else {
+		return stmt.ColumnInt(0) == 1
+	}
+}
+
+func (a sqliteAccRepo) Save(u *account.Account) error {
+	return a.Update(u)
+}
+
+func (a *sqliteAccRepo) save(u *account.Account, fn func(*database.Conn, int) error) (e error) {
+	if !u.UUID.IsUUID() {
+		u.UUID = util.NewUUID()
+	}
+
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	defer conn.Save()(&e)
+	stmt := conn.Prepare(`INSERT INTO Account (UUID, Email, Password) VALUES (?, ?, ?) RETURNING ID`)
+	defer stmt.Reset()
+
+	stmt.BindText(1, u.UUID.Str())
+	stmt.BindText(2, u.Email)
+	stmt.BindText(3, u.Password.String())
+
+	if r, err := stmt.Step(); err != nil {
+		return ErrAccountCanNotBeCreated.Wrap(err)
+	} else if !r {
+		return ErrAccountCanNotBeCreated
+	} else {
+		return fn(conn, stmt.ColumnInt(0))
+	}
+}
+
+func (a *sqliteAccRepo) Update(u *account.Account) error {
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	stmt := conn.Prepare(`UPDATE Account SET
+			Email = CASE WHEN coalesce(:email, '') = '' THEN
+				Email ELSE :email
+			END,
+			Password = CASE WHEN coalesce(:password, '') = '' THEN
+				Password ELSE :password
+			END
+			WHERE UUID=:uuid RETURNING UUID`)
+	defer stmt.Reset()
+	stmt.SetText(":email", u.Email)
+	stmt.SetText(":password", u.Password.String())
+	stmt.SetText(":uuid", u.UUID.Str())
+
+	if r, err := stmt.Step(); err != nil {
+		return ErrAccountCanNotBeUpdated.Wrap(err)
+	} else if !r {
+		return ErrAccountDoesNotExist
+	} else {
+		return nil
+	}
+}
+
+func (a *sqliteAccRepo) Delete(id util.UUID) error {
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+
+	stmt := conn.Prepare(`DELETE FROM Account WHERE UUID=?`)
+	defer stmt.Reset()
+
+	stmt.BindText(1, id.Str())
+
+	if r, err := stmt.Step(); err != nil {
+		return err
+	} else if !r || stmt.ColumnInt(0) != 1 {
+		return ErrAccountDoesNotExist
+	} else {
+		return nil
+	}
+}
+
+func (a *sqliteAccRepo) GetByEmail(email string) (account.Account, error) {
+	return account.EmptyAccount, nil
+}
+
+func (a *sqliteAccRepo) VerifyPassword(id util.UUID, password account.Password) bool {
+	conn := a.db.Get()
+	defer a.db.Release(conn)
+	stmt := conn.Prepare(`SELECT Password FROM Account WHERE UUID=?`)
+	defer stmt.Reset()
+	stmt.BindText(1, id.Str())
+
+	if r, err := stmt.Step(); err != nil {
+		return false
+	} else if !r {
+		return false
+	} else {
+		return !password.Compare(account.Password(stmt.ColumnText(0)))
+	}
 }

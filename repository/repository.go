@@ -1,15 +1,9 @@
 package repository
 
 import (
-	"database/sql"
-	"os"
-	"path/filepath"
+	"scheduler/router/errors"
 	"scheduler/util"
-
-	_ "modernc.org/sqlite"
 )
-
-var sqlite3 *sql.DB
 
 type ID interface {
 	util.ID | util.UUID | ~int | string
@@ -17,42 +11,26 @@ type ID interface {
 
 type Repository[T any, U ID] interface {
 	Save(*T) error
-	Get(U) T
+	Get(U) (T, error)
 	Delete(U) error
 }
 
-var exe, _ = os.Executable()
-var path = filepath.Join(filepath.Dir(exe), "/database/")
-var source = path + "/scheduler.db?_pragma=foreign_keys(1)"
+var (
+	ErrItemDoesNotExist    = errors.NotFound("Item does not exist")
+	ErrItemAlreadyExist    = errors.Conflict("Item already exist")
+	ErrItemCanNotBeCreated = errors.InternalServerError("Item can not be created")
+	ErrItemCanNotBeDeleted = errors.InternalServerError("Item can not be deleted")
+	ErrItemCanNotBeUpdated = errors.InternalServerError("Item can not be updated")
 
-func init() {
-	os.MkdirAll(path, 0755&^os.ModeDir)
+	ErrAccountDoesNotExist    = errors.NotFound("Account does not exist")
+	ErrAccountAlreadyExist    = errors.Conflict("Account already exist")
+	ErrAccountCanNotBeCreated = errors.InternalServerError("Account can not be created")
+	ErrAccountCanNotBeDeleted = errors.InternalServerError("Account can not be deleted")
+	ErrAccountCanNotBeUpdated = errors.InternalServerError("Account can not be updated")
 
-	d, err := sql.Open("sqlite", source)
-	if err != nil {
-		panic("database failed: " + err.Error())
-	}
-	sqlite3 = d
-	initDatabase()
-}
-
-func initDatabase() {
-	if err := sqlite3.Ping(); err != nil {
-		panic(err.Error())
-	}
-	// _, err := sqlite3.Exec(`
-	// CREATE TABLE Account (
-	// 	ID			INTEGER PRIMARY KEY,
-	// 	UUID 		TEXT UNIQUE,
-	// 	Email 		TEXT UNIQUE,
-	// 	Password 	TEXT,
-	// 	UpdatedAt TIMESTAMP,
-	// 	CreatedAt TIMESTAMP,
-	// 	LastLogin TIMESTAMP
-	// );`)
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-	// defer sqlite3.Close()
-
-}
+	ErrUserDoesNotExist    = errors.NotFound("User does not exist")
+	ErrUserAlreadyExist    = errors.Conflict("User already exist")
+	ErrUserCanNotBeCreated = errors.InternalServerError("User can not be created")
+	ErrUserCanNotBeDeleted = errors.InternalServerError("User can not be deleted")
+	ErrUserCanNotBeUpdated = errors.InternalServerError("User can not be updated")
+)
