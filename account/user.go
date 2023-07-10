@@ -1,19 +1,19 @@
 package account
 
 import (
-	"scheduler/internal"
+	e "errors"
 	"scheduler/router/errors"
 )
 
-type asset struct {
-	Sum     uint            `json:"sum"`
-	Balance map[string]uint `json:"balance"`
+type UserAsset struct {
+	Sum     int            `json:"sum"`
+	Balance map[string]int `json:"balance"`
 }
 
 type User struct {
 	Account `json:"account"`
-	Name    string `json:"name"`
-	Asset   asset  `json:"asset"`
+	Name    string    `json:"name"`
+	Asset   UserAsset `json:"asset"`
 }
 
 func (u *User) Validate() error {
@@ -30,10 +30,10 @@ func (u *User) Validate() error {
 	return err.Build()
 }
 
-func (u *User) Commit(s internal.Saver[User]) error {
-	return s.Save(u)
+func (a UserAsset) IsEmptyAsset() bool {
+	return a.Sum == 0 && len(a.Balance) == 0
 }
 
-func (a asset) IsEmptyAsset() bool {
-	return a.Sum == 0 && len(a.Balance) == 0
+func (a UserAsset) UnmarshalJSON(b []byte) error {
+	return e.New("Not supported")
 }
