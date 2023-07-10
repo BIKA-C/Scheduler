@@ -2,12 +2,12 @@ package course
 
 import (
 	"io"
-	"scheduler/account"
+	"scheduler/util"
 	"time"
 )
 
 type Course struct {
-	Meta
+	ID          util.ID
 	Title       string
 	Description string
 	Sections    []Section
@@ -16,16 +16,17 @@ type Course struct {
 // currently doesn't support overnight sections
 type Section struct {
 	Meta
-	Title       string
-	Description string
-	Instructor  *account.Instructor
-	repeat      Repetition
-	start       Date
-	duration    time.Duration
-	at          Time
+	Title        string
+	Description  string
+	UnitPrice    int
+	InstructorID util.UUID
+	repeat       Repetition
+	start        Date
+	duration     time.Duration
+	at           Time
 }
 
-func NewSection(title, des string, start Date, at Time, dur time.Duration, rep Repetition) Section {
+func NewSection(title, des string, p int, start Date, at Time, dur time.Duration, rep Repetition) Section {
 	if rep.on && rep.end.Before(start) {
 		panic("Repetition has an invalid end date")
 	}
@@ -37,6 +38,7 @@ func NewSection(title, des string, start Date, at Time, dur time.Duration, rep R
 	s := Section{
 		Title:       title,
 		Description: des,
+		UnitPrice:   p,
 		start:       start,
 		at:          at,
 		duration:    dur,
@@ -83,16 +85,13 @@ func (c *Section) Next(from Date, n int) ([]Class, Date, error) {
 	if !c.repeat.interval.Freq.IsON(current) {
 		current = c.repeat.interval.Freq.Next(current, 1)
 	}
-	ins := account.Instructor{}
-	if c.Instructor != nil {
-		ins = *c.Instructor
-	}
 	var at Time = c.at
 	var class Class = Class{
-		Order:      0,
-		Title:      c.Title,
-		Duration:   c.duration,
-		Instructor: ins,
+		Index:        0,
+		UnitPrice:    c.UnitPrice,
+		Title:        c.Title,
+		Duration:     c.duration,
+		InstructorID: c.InstructorID,
 	}
 
 	for (current.Same(c.repeat.end) || current.Before(c.repeat.end)) && n > 0 {
@@ -100,7 +99,7 @@ func (c *Section) Next(from Date, n int) ([]Class, Date, error) {
 		if list == nil {
 			list = make([]Class, 0, n)
 		}
-		class.Order++
+		class.Index++
 		class.Time = current.ToTimeAt(at)
 		list = append(list, class)
 		current = c.repeat.interval.Freq.Next(current, c.repeat.interval.Skip+1)
@@ -116,26 +115,24 @@ func (c *Section) Next(from Date, n int) ([]Class, Date, error) {
 }
 
 func (c *Section) First() Class {
-	var ins account.Instructor = account.Instructor{}
-	if c.Instructor != nil {
-		ins = *c.Instructor
-	}
 	if !c.repeat.on || c.repeat.end.Same(c.start) || c.repeat.interval.Freq.IsON(c.start) {
 		return Class{
-			Title:      c.Title,
-			Order:      1,
-			Time:       c.start.ToTimeAt(c.at),
-			Duration:   c.duration,
-			Instructor: ins,
+			Title:        c.Title,
+			Index:        1,
+			UnitPrice:    c.UnitPrice,
+			Time:         c.start.ToTimeAt(c.at),
+			Duration:     c.duration,
+			InstructorID: c.InstructorID,
 		}
 	} else {
 		date := c.repeat.interval.Freq.Next(c.start, 1)
 		return Class{
-			Title:      c.Title,
-			Order:      1,
-			Time:       date.ToTimeAt(c.at),
-			Duration:   c.duration,
-			Instructor: ins,
+			Title:        c.Title,
+			Index:        1,
+			UnitPrice:    c.UnitPrice,
+			Time:         date.ToTimeAt(c.at),
+			Duration:     c.duration,
+			InstructorID: c.InstructorID,
 		}
 
 	}
@@ -154,11 +151,11 @@ func (c *Section) All() []Class {
 	var list []Class = make([]Class, 0, 10)
 	var class Class = c.First()
 	var current Date = NewDateFromTime(class.Time)
-	class.Order = 0
+	class.Index = 0
 
 	for current.Before(c.repeat.end) {
 		class.Time = at.ToTime(current)
-		class.Order++
+		class.Index++
 		list = append(list, class)
 		current = c.repeat.interval.Freq.Next(current, c.repeat.interval.Skip+1)
 	}

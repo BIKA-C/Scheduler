@@ -45,45 +45,45 @@ func (r *router) Use(middlewares ...HandlerFunc) *router {
 }
 
 // GET handle GET method
-func (r *router) GET(path string, handlers ...HandlerFunc) {
+func (r *router) GET(path string, handlers HandlerFunc) {
 	r.Handle("GET", path, handlers)
 }
 
 // POST handle POST method
-func (r *router) POST(path string, handlers ...HandlerFunc) {
+func (r *router) POST(path string, handlers HandlerFunc) {
 	r.Handle("POST", path, handlers)
 }
 
 // PATCH handle PATCH method
-func (r *router) PATCH(path string, handlers ...HandlerFunc) {
+func (r *router) PATCH(path string, handlers HandlerFunc) {
 	r.Handle("PATCH", path, handlers)
 }
 
 // PUT handle PUT method
-func (r *router) PUT(path string, handlers ...HandlerFunc) {
+func (r *router) PUT(path string, handlers HandlerFunc) {
 	r.Handle("PUT", path, handlers)
 }
 
 // DELETE handle DELETE method
-func (r *router) DELETE(path string, handlers ...HandlerFunc) {
+func (r *router) DELETE(path string, handlers HandlerFunc) {
 	r.Handle("DELETE", path, handlers)
 }
 
 // HEAD handle HEAD method
-func (r *router) HEAD(path string, handlers ...HandlerFunc) {
+func (r *router) HEAD(path string, handlers HandlerFunc) {
 	r.Handle("HEAD", path, handlers)
 }
 
 // OPTIONS handle OPTIONS method
-func (r *router) OPTIONS(path string, handlers ...HandlerFunc) {
+func (r *router) OPTIONS(path string, handlers HandlerFunc) {
 	r.Handle("OPTIONS", path, handlers)
 }
 
 // Group group route
 func (r *router) Group(path string, handlers ...HandlerFunc) *router {
-	handlers = r.combineHandlers(handlers)
+	h := r.combineHandlers(handlers...)
 	return &router{
-		handlers: handlers,
+		handlers: h,
 		prefix:   r.path(path),
 		router:   r.router,
 	}
@@ -138,11 +138,12 @@ func (r *router) Static(path string, root http.Dir, handlers ...HandlerFunc) {
 }
 
 // Handle handle with specific method
-func (r *router) Handle(method, path string, handlers []HandlerFunc) {
+func (r *router) Handle(method, path string, h HandlerFunc) {
+	handlers := r.combineHandlers(h)
 	r.router.httprouter.Handle(method, r.path(path), func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		c := r.router.createContext(w, req)
 		c.params = params
-		c.handlers = r.combineHandlers(handlers)
+		c.handlers = handlers
 		if e := c.Next(); e != nil && r.router.errorHandler != nil {
 			r.router.errorHandler(c, e)
 		}
@@ -166,7 +167,7 @@ func (r *router) path(p string) string {
 	return concat(r.prefix, p)
 }
 
-func (r *router) combineHandlers(handlers []HandlerFunc) []HandlerFunc {
+func (r *router) combineHandlers(handlers ...HandlerFunc) []HandlerFunc {
 	aLen := len(r.handlers)
 	h := make([]HandlerFunc, aLen)
 	copy(h, r.handlers)

@@ -101,6 +101,11 @@ func (c *C) ParseJSON(v any) error {
 	return d.Decode(v)
 }
 
+// Parse decode body based on application-type
+func (c *C) Parse(v any) error {
+	panic("not implemented")
+}
+
 // Lang get first language from HTTP Header
 func (c *C) Lang() string {
 	langStr := c.Request.Header.Get(acceptLanguage)

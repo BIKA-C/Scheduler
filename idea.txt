@@ -1,0 +1,77 @@
+# Core API Endpoints
+
+## User Account
+POST    /user
+GET     /user/:uid          ✅
+PATCH   /user/:uid          ✅
+DELETE  /user/:uid          🚧
+PATCH   /user/:uid/account  ✅
+
+## User Courses
+GET     /user/:uid/institution/:iid/course
+POST    /user/:uid/institution/:iid/course/:csid
+GET     /user/:uid/institution/:iid/course/:csid
+DELETE  /user/:uid/institution/:iid/course
+DELETE  /user/:uid/institution/:iid/course/:csid
+
+
+## institution Account
+GET     /institution
+POST    /institution
+GET     /institution/:iid
+PATCH   /institution/:iid
+PATCH   /institution/:iid/account
+
+## institution Clients
+POST    /institution/:iid/student
+GET     /institution/:iid/student
+DELETE  /institution/:iid/student
+DELETE  /institution/:iid/student/:uid
+PATCH   /institution/:iid/student/:uid
+
+## institution Instructor
+POST    /institution/:iid/instructor
+GET     /institution/:iid/instructor
+DELETE  /institution/:iid/instructor
+DELETE  /institution/:iid/instructor/:uid
+PATCH   /institution/:iid/instructor/:uid
+
+## institution Instructor
+GET     /institution/:iid/instructor/:uid/section
+GET     /institution/:iid/instructor/:uid/section/:sid/student
+DELETE  /institution/:iid/instructor/
+DELETE  /institution/:iid/instructor/:uid
+PATCH   /institution/:iid/instructor/:uid
+
+## institution Course
+POST    /institution/:iid/course
+GET     /institution/:iid/course
+DELETE  /institution/:iid/course
+DELETE  /institution/:iid/course/:csid
+PATCH   /institution/:iid/course/:csid
+
+## institution Course Section
+POST    /institution/:iid/course/:csid/section
+GET     /institution/:iid/course/:csid/section
+DELETE  /institution/:iid/course/:csid/section
+DELETE  /institution/:iid/course/:csid/section/:sid
+PATCH   /institution/:iid/course/:csid/section/:sid
+
+## institution Course Section Student
+POST    /institution/:iid/course/:csid/section/:sid/student
+GET     /institution/:iid/course/:csid/section/:sid/student
+DELETE  /institution/:iid/course/:csid/section/:sid/student
+DELETE  /institution/:iid/course/:csid/section/:sid/student/:uid
+
+## institution Course Section Class
+POST    /institution/:iid/course/:csid/section/:sid/class
+GET     /institution/:iid/course/:csid/section/:sid/class
+DELETE  /institution/:iid/course/:csid/section/:sid/class
+DELETE  /institution/:iid/course/:csid/section/:sid/class/:cid
+PATCH   /institution/:iid/course/:csid/section/:sid/class/:cid
+
+## institution Course Section Class Student
+POST    /institution/:iid/course/:csid/section/:sid/class/:cid/student
+GET     /institution/:iid/course/:csid/section/:sid/class/:cid/student
+DELETE  /institution/:iid/course/:csid/section/:sid/class/:cid/student
+DELETE  /institution/:iid/course/:csid/section/:sid/class/:cid/student/:uid

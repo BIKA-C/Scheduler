@@ -30,11 +30,7 @@ func conj(s *strings.Builder, k, v string) {
 	if v == "" {
 		return
 	}
-	// if s.Len() > 1 {
 	s.WriteString(fmt.Sprintf("PRAGMA %s=%v;", k, v))
-	// } else {
-	// 	s.WriteString(fmt.Sprintf("_%s=%v", k, v))
-	// }
 }
 
 func (p *Pragma) String() string {
@@ -77,6 +73,7 @@ func NewSQLite(path string, size int, opt Pragma) *SQLite {
 		for i := 0; i < size; i++ {
 			db.Put((*sqlite.Conn)(conns[i]))
 		}
+		Setup(s)
 
 		return s
 	}
@@ -89,7 +86,7 @@ func (s *SQLite) Close() error {
 func (s *SQLite) Get() *Conn {
 	return (*Conn)(s.db.Get(context.Background()))
 }
-func (s *SQLite) Release(c *Conn) {
+func (s *SQLite) Put(c *Conn) {
 	s.db.Put((*sqlite.Conn)(c))
 }
 
@@ -121,55 +118,10 @@ func (c *Conn) Pragma(key, val string) error {
 	return sqlitex.ExecScript(c.Raw(), fmt.Sprintf("PRAGMA %s = %s", key, val))
 }
 
-// var wd, _ = os.Getwd()
-// var path = filepath.Join(wd, "/database/")
-
-// var pragmas = "?_pragma=foreign_keys(1)&_pragma=recursive_triggers(0)&_pragma=journal_mode(WAL)&_pragma=synchronous(normal)&_pragma=temp_store(memory)&_pragma=mmap_size(300000000)&cache=shared&_pragma=busy_timeout(500)"
-// var pragmas = "?_foreign_keys=1&_recursive_triggers=0&_journal_mode=WAL&_synchronous=normal&_temp_store=memory&_mmap_size=300000000&cache=shared&_busy_timeout=1000"
-// var source = path + "/scheduler.db" + pragmas
-
-// func init() {
-// 	exe, _ := os.Executable()
-// 	exePath := filepath.Dir(exe)
-
-// 	if !filepath.HasPrefix(exePath, os.TempDir()) && wd != exePath {
-// 		path = filepath.Join(exePath, "/database/")
-// 		source = path + "/scheduler.db" + pragmas
-// 	}
-// 	// wait until testing.Testing() is implemented Go 1.23
-// 	if strings.HasSuffix(os.Args[0], ".test") {
-// 		source = ":memory:" + pragmas
-// 	} else {
-// 		// database at EXE/database/scheduler.db
-// 		os.MkdirAll(path, 0755&^os.ModeDir)
-// 	}
-
-// 	d, err := sql.Open("sqlite3", source)
-// 	if err != nil {
-// 		panic("database failed: " + err.Error())
-// 	}
-// 	setup(d)
-// }
-
-// func Reset() {
-// // wait until testing.Testing() is implemented Go 1.23
-// if strings.HasSuffix(os.Args[0], ".test") {
-// 	source = ":memory:" + pragmas
-// }
-
-// d, err := sql.Open("sqlite3", source)
-// if err != nil {
-// 	panic("database failed: " + err.Error())
-// }
-// setup(d)
-// }
-
 func Setup(db *SQLite) {
 	conn := db.Get()
-	defer db.Release(conn)
-	stmt := conn.PrepareTransient(initDB)
-	defer stmt.Finalize()
-	if _, err := stmt.Step(); err != nil {
+	defer db.Put(conn)
+	if err := sqlitex.ExecScript(conn.Raw(), initDB); err != nil {
 		panic(err.Error())
 	}
 }
@@ -214,7 +166,8 @@ const initDB = `
 		ContactID	INTEGER		NOT NULL,
 		FOREIGN KEY (AccountID) REFERENCES Account(ID) ON DELETE CASCADE,
 		FOREIGN KEY (ContactID) REFERENCES Contact(ID) ON DELETE CASCADE,
-		UNIQUE(AccountID)
+		UNIQUE(AccountID),
+		UNIQUE(Name)
 	) STRICT;
 	CREATE TABLE IF NOT EXISTS Instructor (
 		ID				INTEGER		PRIMARY KEY,
@@ -238,7 +191,9 @@ const initDB = `
 	CREATE TABLE IF NOT EXISTS Course (
 		ID				INTEGER		PRIMARY KEY,
 		Title			TEXT		NOT NULL,
-		Description		TEXT
+		InstitutionID	INTEGER		NOT NULL,
+		Description		TEXT,
+		FOREIGN KEY (InstitutionID) REFERENCES Institution(ID) ON DELETE CASCADE
 	) STRICT;
 	CREATE TABLE IF NOT EXISTS Section (
 		ID				INTEGER		PRIMARY KEY,
@@ -250,7 +205,7 @@ const initDB = `
 		UnitPrice		INTEGER		NOT NULL,
 		RepetitionID	INTEGER,
 		InstructorID	INTEGER		NOT NULL,
-		CourseID		INTEGER,
+		CourseID		INTEGER		NOT NULL,
 		FOREIGN KEY (CourseID) 		REFERENCES Course(ID) ON DELETE CASCADE,
 		FOREIGN KEY (InstructorID) 	REFERENCES Instructor(ID),
 		FOREIGN KEY (RepetitionID) 	REFERENCES Repetition(ID),
@@ -273,6 +228,13 @@ const initDB = `
 		FOREIGN KEY (InstructorID) 	REFERENCES Instructor(ID),
 		CHECK (Canceled IN (TRUE, FALSE)),
 		CHECK (Completed IN (TRUE, FALSE))
+	) STRICT;
+	CREATE TABLE IF NOT EXISTS Enrollment (
+		ID				INTEGER		PRIMARY KEY,
+		UserID			INTEGER,
+		ClassID			INTEGER,
+		FOREIGN KEY (UserID) 	REFERENCES User(ID) ON DELETE CASCADE,
+		FOREIGN KEY (ClassID) 	REFERENCES Class(ID) ON DELETE CASCADE
 	) STRICT;
 	CREATE TABLE IF NOT EXISTS Repetition (
 		ID				INTEGER		PRIMARY KEY,

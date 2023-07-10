@@ -9,35 +9,25 @@ import (
 	"github.com/bika-c/sqlite"
 )
 
-// AccountRepository's Save method always updates the database
-type AccountRepository interface {
-	Repository[account.Account, util.UUID]
-	GetID(util.UUID) int
+var _ Repository[account.Account, util.UUID] = &Account{}
 
-	GetByEmail(email string) (account.Account, error)
-	VerifyPassword(UUID util.UUID, password account.Password) bool
-}
-
-var _ AccountRepository = &sqliteAccRepo{}
-
-type sqliteAccRepo struct {
+type Account struct {
 	db *database.SQLite
 }
 
-func AccountRepo(db *database.SQLite) *sqliteAccRepo {
-	return &sqliteAccRepo{
+func AccountRepo(db *database.SQLite) Account {
+	return Account{
 		db: db,
 	}
 }
 
-func (a *sqliteAccRepo) Get(id util.UUID) (account.Account, error) {
+func (a *Account) Get(id util.UUID) (account.Account, error) {
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	stmt := conn.Prepare(`SELECT Email, ID, CreatedAt, UpdatedAt, LastLogin FROM Account WHERE UUID=?`)
 	defer stmt.Reset()
 
 	var acc account.Account
-
 	acc.UUID = id
 
 	stmt.BindText(1, id.Str())
@@ -57,9 +47,9 @@ func (a *sqliteAccRepo) Get(id util.UUID) (account.Account, error) {
 	return acc, nil
 }
 
-func (a *sqliteAccRepo) GetID(uuid util.UUID) (i int) {
+func (a *Account) GetID(uuid util.UUID) (i int) {
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	stmt := conn.Prepare(`SELECT ID FROM Account WHERE UUID=?`)
 	defer stmt.Reset()
 
@@ -73,7 +63,7 @@ func (a *sqliteAccRepo) GetID(uuid util.UUID) (i int) {
 	}
 }
 
-func (a *sqliteAccRepo) exist(u *account.Account) bool {
+func (a *Account) exist(u *account.Account) bool {
 	if u.Email == "" && u.UUID.IsUUID() {
 		return true
 	}
@@ -82,7 +72,7 @@ func (a *sqliteAccRepo) exist(u *account.Account) bool {
 	}
 
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	stmt := conn.Prepare(`SELECT count(UUID) FROM Account WHERE (UUID=? AND Email=?) OR ID=?`)
 	defer stmt.Reset()
 	stmt.BindText(1, u.UUID.Str())
@@ -97,17 +87,17 @@ func (a *sqliteAccRepo) exist(u *account.Account) bool {
 	}
 }
 
-func (a sqliteAccRepo) Save(u *account.Account) error {
+func (a Account) Save(u *account.Account) error {
 	return a.Update(u)
 }
 
-func (a *sqliteAccRepo) save(u *account.Account, fn func(*database.Conn, int) error) (e error) {
+func (a *Account) save(u *account.Account, fn func(*database.Conn, int) error) (e error) {
 	if !u.UUID.IsUUID() {
 		u.UUID = util.NewUUID()
 	}
 
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	defer conn.Save()(&e)
 	stmt := conn.Prepare(`INSERT INTO Account (UUID, Email, Password) VALUES (?, ?, ?) RETURNING ID`)
 	defer stmt.Reset()
@@ -117,17 +107,19 @@ func (a *sqliteAccRepo) save(u *account.Account, fn func(*database.Conn, int) er
 	stmt.BindText(3, u.Password.String())
 
 	if r, err := stmt.Step(); err != nil {
-		return ErrAccountCanNotBeCreated.Wrap(err)
+		return ErrAccountAlreadyExist.Wrap(err)
 	} else if !r {
 		return ErrAccountCanNotBeCreated
-	} else {
+	} else if fn != nil {
 		return fn(conn, stmt.ColumnInt(0))
+	} else {
+		return nil
 	}
 }
 
-func (a *sqliteAccRepo) Update(u *account.Account) error {
+func (a *Account) Update(u *account.Account) error {
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	stmt := conn.Prepare(`UPDATE Account SET
 			Email = CASE WHEN coalesce(:email, '') = '' THEN
 				Email ELSE :email
@@ -150,31 +142,27 @@ func (a *sqliteAccRepo) Update(u *account.Account) error {
 	}
 }
 
-func (a *sqliteAccRepo) Delete(id util.UUID) error {
+func (a *Account) Delete(id util.UUID) error {
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 
-	stmt := conn.Prepare(`DELETE FROM Account WHERE UUID=?`)
+	stmt := conn.Prepare(`DELETE FROM Account WHERE UUID=? RETURNING ID`)
 	defer stmt.Reset()
 
 	stmt.BindText(1, id.Str())
 
 	if r, err := stmt.Step(); err != nil {
-		return err
-	} else if !r || stmt.ColumnInt(0) != 1 {
 		return ErrAccountDoesNotExist
+	} else if !r {
+		return ErrAccountCanNotBeDeleted
 	} else {
 		return nil
 	}
 }
 
-func (a *sqliteAccRepo) GetByEmail(email string) (account.Account, error) {
-	return account.EmptyAccount, nil
-}
-
-func (a *sqliteAccRepo) VerifyPassword(id util.UUID, password account.Password) bool {
+func (a *Account) VerifyPassword(id util.UUID, password account.Password) bool {
 	conn := a.db.Get()
-	defer a.db.Release(conn)
+	defer a.db.Put(conn)
 	stmt := conn.Prepare(`SELECT Password FROM Account WHERE UUID=?`)
 	defer stmt.Reset()
 	stmt.BindText(1, id.Str())
@@ -184,6 +172,6 @@ func (a *sqliteAccRepo) VerifyPassword(id util.UUID, password account.Password) 
 	} else if !r {
 		return false
 	} else {
-		return !password.Compare(account.Password(stmt.ColumnText(0)))
+		return password.Compare(account.Password(stmt.ColumnText(0)))
 	}
 }

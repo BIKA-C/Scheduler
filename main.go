@@ -2,13 +2,13 @@ package main
 
 import (
 	"net/http"
-	"scheduler/api"
+	"scheduler/server"
 )
 
 func main() {
 	s := http.Server{
 		Addr:    ":8080",
-		Handler: api.New(),
+		Handler: server.New(),
 	}
 	s.ListenAndServe()
 }

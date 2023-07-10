@@ -1,6 +1,8 @@
 package course
 
-import "time"
+import (
+	"time"
+)
 
 var NoRepetition Repetition = Repetition{}
 

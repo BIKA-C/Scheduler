@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-func setupRepo(b *testing.B) (sqliteAccRepo, []util.UUID) {
+func setupRepo(b *testing.B) (Account, []util.UUID) {
 	b.Helper()
 	db := database.NewSQLite(b.TempDir()+"/test.db", 40, database.DefaultPragma)
 	database.Setup(db)
-	a := sqliteAccRepo{
+	a := Account{
 		db: db,
 	}
 	uuid := make([]util.UUID, b.N)
@@ -24,7 +24,7 @@ func setupRepo(b *testing.B) (sqliteAccRepo, []util.UUID) {
 			Email:    fmt.Sprintf("acc%d@test.bench", i),
 			UUID:     uuid[i],
 		}
-		if err := a.save(&acc, func(tx *database.Conn, id int) error {
+		if err := a.save(&acc, func(_ *database.Conn, id int) error {
 			if id < 0 {
 				b.Fatal("insert failed")
 			}
@@ -34,7 +34,7 @@ func setupRepo(b *testing.B) (sqliteAccRepo, []util.UUID) {
 		}
 	}
 	c := db.Get()
-	defer db.Release(c)
+	defer db.Put(c)
 	s := c.PrepareTransient("SELECT count(*) FROM Account")
 	defer s.Finalize()
 	if r, err := s.Step(); !r || err != nil {
@@ -92,7 +92,7 @@ func BenchmarkAccRepo_Base(b *testing.B) {
 				b.Fatal("No result")
 			}
 			s.Reset()
-			a.db.Release(conn)
+			a.db.Put(conn)
 		}
 	})
 }

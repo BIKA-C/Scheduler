@@ -18,13 +18,14 @@ func TestSection_Next_From_Start(t *testing.T) {
 		{
 			name: "Base Test: Single Section",
 			section: Section{
-				start:  NewDate(2023, 1, 1),
-				repeat: Repetition{},
-				at:     EightAM,
+				start:     NewDate(2023, 1, 1),
+				repeat:    Repetition{},
+				UnitPrice: 1,
+				at:        EightAM,
 			},
 			next: 1,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 1, 1).ToTimeAt(EightAM)},
+				{Index: 1, Time: NewDate(2023, 1, 1).ToTimeAt(EightAM), UnitPrice: 1},
 			},
 			wantErr: true,
 		}, {
@@ -39,7 +40,7 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 1,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 1, 1).ToTime()},
+				{Index: 1, Time: NewDate(2023, 1, 1).ToTime()},
 			},
 			wantErr: true,
 		}, {
@@ -54,9 +55,9 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 3,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 1, 31).ToTime()},
-				{Order: 2, Time: NewDate(2023, 2, 2).ToTime()},
-				{Order: 3, Time: NewDate(2023, 2, 4).ToTime()},
+				{Index: 1, Time: NewDate(2023, 1, 31).ToTime()},
+				{Index: 2, Time: NewDate(2023, 2, 2).ToTime()},
+				{Index: 3, Time: NewDate(2023, 2, 4).ToTime()},
 			},
 			wantErr: true,
 		}, {
@@ -71,9 +72,9 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 3,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 6, 26).ToTime()},
-				{Order: 2, Time: NewDate(2023, 7, 3).ToTime()},
-				{Order: 3, Time: NewDate(2023, 7, 10).ToTime()},
+				{Index: 1, Time: NewDate(2023, 6, 26).ToTime()},
+				{Index: 2, Time: NewDate(2023, 7, 3).ToTime()},
+				{Index: 3, Time: NewDate(2023, 7, 10).ToTime()},
 			},
 			wantErr: false,
 		}, {
@@ -88,10 +89,10 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 4,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 6, 26).ToTime()},
-				{Order: 2, Time: NewDate(2023, 6, 30).ToTime()},
-				{Order: 3, Time: NewDate(2023, 7, 17).ToTime()},
-				{Order: 4, Time: NewDate(2023, 7, 21).ToTime()},
+				{Index: 1, Time: NewDate(2023, 6, 26).ToTime()},
+				{Index: 2, Time: NewDate(2023, 6, 30).ToTime()},
+				{Index: 3, Time: NewDate(2023, 7, 17).ToTime()},
+				{Index: 4, Time: NewDate(2023, 7, 21).ToTime()},
 			},
 			wantErr: true,
 		}, {
@@ -106,8 +107,8 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 2,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 7, 1).ToTime()},
-				{Order: 2, Time: NewDate(2023, 8, 1).ToTime()},
+				{Index: 1, Time: NewDate(2023, 7, 1).ToTime()},
+				{Index: 2, Time: NewDate(2023, 8, 1).ToTime()},
 			},
 			wantErr: false,
 		}, {
@@ -122,11 +123,11 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 5,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 7, 1).ToTime()},
-				{Order: 2, Time: NewDate(2023, 7, 31).ToTime()},
-				{Order: 3, Time: NewDate(2023, 11, 1).ToTime()},
-				{Order: 4, Time: NewDate(2023, 11, 30).ToTime()},
-				{Order: 5, Time: NewDate(2024, 3, 1).ToTime()},
+				{Index: 1, Time: NewDate(2023, 7, 1).ToTime()},
+				{Index: 2, Time: NewDate(2023, 7, 31).ToTime()},
+				{Index: 3, Time: NewDate(2023, 11, 1).ToTime()},
+				{Index: 4, Time: NewDate(2023, 11, 30).ToTime()},
+				{Index: 5, Time: NewDate(2024, 3, 1).ToTime()},
 			},
 			wantErr: true,
 		}, {
@@ -141,9 +142,9 @@ func TestSection_Next_From_Start(t *testing.T) {
 			},
 			next: 3,
 			want: []Class{
-				{Order: 1, Time: NewDate(2023, 12, 31).ToTime()},
-				{Order: 2, Time: NewDate(2024, 2, 29).ToTime()},
-				{Order: 3, Time: NewDate(2024, 4, 30).ToTime()},
+				{Index: 1, Time: NewDate(2023, 12, 31).ToTime()},
+				{Index: 2, Time: NewDate(2024, 2, 29).ToTime()},
+				{Index: 3, Time: NewDate(2024, 4, 30).ToTime()},
 			},
 			wantErr: false,
 		},
